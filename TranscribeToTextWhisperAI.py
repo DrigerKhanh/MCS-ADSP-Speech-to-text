@@ -1,22 +1,14 @@
-import numpy as np
 import matplotlib.pyplot as plt
 
-import librosa
 import librosa.display
-import soundfile as sf
 import speech_recognition as sr
 
 from jiwer import wer, cer
 from IPython.display import Audio
 
-import whisper
-
 import csv
 import os
-import tempfile
-import wave
 
-from gtts import gTTS
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -53,45 +45,25 @@ calculated_cer = cer(ground_truth, transcribed_text)
 print(f"Word Error Rate (WER): {calculated_wer:.4f}")
 print(f"Character Error Rate (CER): {calculated_cer:.4f}")
 
-model = whisper.load_model("base")
-result = model.transcribe(file_path)
-
-transcribed_text_whisper = result["text"]
-
-calculated_wer = wer(ground_truth, transcribed_text_whisper)
-calculated_cer = cer(ground_truth, transcribed_text_whisper)
-print(f"Word Error Rate (WER): {calculated_wer:.4f}")
-print(f"Character Error Rate (CER): {calculated_cer:.4f}")
-
-# Transcribing Multiple Audio Files from a Directory
-directory_path = "C:/Users/PC/Downloads/Speech Recognition/Recordings"
-
-def transcribe_directory_whisper(directory_path):
+def transcribe_directory(directory_path, output_file):
     transcriptions = []
     for file_name in os.listdir(directory_path):
         if file_name.endswith(".wav"):
-            files_path = os.path.join(directory_path, file_name)
-            # Transcribe the audio file
-            result = model.transcribe(files_path)
-            transcription = result["text"]
+            file_path = os.path.join(directory_path, file_name)
+            transcription = transcribe_audio(file_path)
             transcriptions.append({"file_name": file_name, "transcription": transcription})
-    return transcriptions
 
-transcriptions = transcribe_directory_whisper(directory_path)
+    # Ghi kết quả vào file CSV
+    with open(output_file, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["File Name", "Transcription"])  # Ghi tiêu đề cột
+        for entry in transcriptions:
+            writer.writerow([entry['file_name'], entry['transcription']])
 
-# Saving Audio Transcriptions to CSV for Easy Analysis
-output_file = "transcriptions.csv"
+    print(f"Transcriptions saved to {output_file}")
 
-with open(output_file, mode='w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(["Track Number", "File Name", "Transcription"])  # Write the header
-    for number, transcription in enumerate(transcriptions, start=1):
-        writer.writerow([number, transcription['file_name'], transcription['transcription']])
+# Đường dẫn thư mục chứa file âm thanh và file kết quả đầu ra
+directory_path = "./dataset/Recordings"
+output_file = "./output/transcriptions.csv"
 
-text = """Thank you for taking the time to watch our course on speech recognition!
-This concludes the final lesson of this section. See you soon!"""
-
-tts = gTTS(text=text, lang='en')
-tts.save("output.mp3")
-
-os.system("start output.mp3")
+transcribe_directory(directory_path, output_file)
